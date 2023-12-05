@@ -10,24 +10,30 @@
 
   <license>TODO</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>cmake_modules</build_depend>
   <build_depend>cmake_clang_tools</build_depend>
+  <depend>ament_index_cpp</depend>
 
-  <depend>tf</depend>
+  <depend>rclcpp</depend>
+  <depend>tf2</depend>
   <depend>urdf</depend>
   <depend>kdl_parser</depend>
   <depend>robot_state_publisher</depend>
   <depend>visualization_msgs</depend>
 
+  <depend>ocs2_ros_interfaces</depend>
   <depend>ocs2_core</depend>
   <depend>ocs2_oc</depend>
   <depend>ocs2_ddp</depend>
   <depend>ocs2_mpc</depend>
   <depend>ocs2_sqp</depend>
   <depend>ocs2_slp</depend>
-  <depend>ocs2_ros_interfaces</depend>
   <depend>ocs2_ballbot</depend>
   <depend>ocs2_robotic_tools</depend>
   <depend>ocs2_robotic_assets</depend>
 
+  <export>                               
+   <build_type>ament_cmake</build_type>
+  </export> 
 </package>

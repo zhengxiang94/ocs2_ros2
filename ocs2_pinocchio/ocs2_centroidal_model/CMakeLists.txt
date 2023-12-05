@@ -1,44 +1,36 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.14)
 project(ocs2_centroidal_model)
 
 # Generate compile_commands.json for clang tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
+set(dependencies
   ocs2_core
   ocs2_robotic_tools
   ocs2_robotic_assets
   ocs2_pinocchio_interface
+  hpp-fcl
+  pinocchio
+  urdf
+  Boost
 )
 
-find_package(catkin REQUIRED
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_core REQUIRED)
+find_package(ocs2_robotic_tools REQUIRED)
+find_package(ocs2_robotic_assets REQUIRED)
+find_package(ocs2_pinocchio_interface REQUIRED)
+find_package(urdf REQUIRED)
+find_package(urdfdom REQUIRED)
+find_package(hpp-fcl REQUIRED)
+find_package(pinocchio REQUIRED)
 
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS
   system
   filesystem
-)
-
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(pinocchio REQUIRED pinocchio)
-
-###################################
-## catkin specific configuration ##
-###################################
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-  DEPENDS
-    pinocchio
-    Boost
+  log_setup
+  log
 )
 
 ###########
@@ -58,12 +50,6 @@ include_directories(
   include
   ${pinocchio_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
-)
-
-link_directories(
-  ${pinocchio_LIBRARY_DIRS}
 )
 
 add_library(${PROJECT_NAME}
@@ -75,12 +61,11 @@ add_library(${PROJECT_NAME}
   src/FactoryFunctions.cpp
   src/ModelHelperFunctions.cpp
 )
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${pinocchio_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 target_compile_options(${PROJECT_NAME} PUBLIC ${FLAGS})
+set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 #########################
 ###   CLANG TOOLING   ###
@@ -101,32 +86,36 @@ endif(cmake_clang_tools_FOUND)
 #############
 install(
   TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/${PROJECT_NAME}
 )
 
-install(
-  DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 #############
 ## Testing ##
 #############
+find_package(ament_lint_auto REQUIRED)
+ament_lint_auto_find_test_dependencies()
+find_package(ament_cmake_gtest REQUIRED)
 
-catkin_add_gtest(${PROJECT_NAME}_test
+ament_add_gtest(${PROJECT_NAME}_test
   # test/testAccessMethods.cpp
   test/testAnymalCentroidalModel.cpp
 )
+ament_target_dependencies(${PROJECT_NAME}_test ${dependencies})
 target_include_directories(${PROJECT_NAME}_test PRIVATE
   test/include
 )
 target_link_libraries(${PROJECT_NAME}_test
-  gtest_main
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${pinocchio_LIBRARIES}
 )
-target_compile_options(${PROJECT_NAME}_test PRIVATE ${FLAGS})
+target_compile_options(${PROJECT_NAME}_test PUBLIC ${FLAGS})
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_package(CONFIG_EXTRAS "cmake/pinocchio_config.cmake")

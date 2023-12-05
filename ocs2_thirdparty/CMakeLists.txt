@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_thirdparty)
 
-find_package(catkin)
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-)
+find_package(ament_cmake REQUIRED)
 
 install(DIRECTORY include/
-        DESTINATION "${CATKIN_PACKAGE_INCLUDE_DESTINATION}/../")
+        DESTINATION "include/${PROJECT_NAME}/../")
+
+ament_export_include_directories(include)
+ament_export_dependencies()
+ament_package()

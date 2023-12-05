@@ -1,2 +1,0 @@
-from ocs2_legged_robot_mpcnet.LeggedRobotMpcnetPybindings import MpcnetInterface
-from ocs2_legged_robot_mpcnet.mpcnet import LeggedRobotMpcnet

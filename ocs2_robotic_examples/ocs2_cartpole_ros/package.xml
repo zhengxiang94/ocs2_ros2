@@ -10,9 +10,9 @@
 
   <license>TODO</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <build_depend>roslib </build_depend>
+  <build_depend>rclcpp </build_depend>
   <build_depend>cmake_clang_tools</build_depend>
 
   <depend>ocs2_core</depend>
@@ -24,4 +24,7 @@
   <depend>robot_state_publisher</depend>
   <depend>ocs2_robotic_assets</depend>
   
+  <export>                               
+   <build_type>ament_cmake</build_type>
+  </export>
 </package>

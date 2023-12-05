@@ -1,44 +1,35 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_quadrotor)
 
 # Generate compile_commands.json for clang tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
-  pybind11_catkin
+set(dependencies
   ocs2_mpc
   ocs2_ddp
   ocs2_robotic_tools
   ocs2_robotic_assets
   ocs2_python_interface
+  Boost
 )
-
-find_package(catkin REQUIRED COMPONENTS
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
+find_package(pybind11 REQUIRED)
+find_package(ament_cmake REQUIRED)
+find_package(pybind11_vendor REQUIRED)
+find_package(ocs2_ddp REQUIRED)
+find_package(ocs2_mpc REQUIRED)
+find_package(ocs2_robotic_tools REQUIRED)
+find_package(ocs2_python_interface REQUIRED)
+find_package(ocs2_robotic_assets REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS
   system
   filesystem
+  log_setup
+  log
 )
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-  DEPENDS
-    Boost
-  LIBRARIES
-    ${PROJECT_NAME}
-)
 
 ###########
 ## Build ##
@@ -55,7 +46,6 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
 )
 
 # Quadrotor interface library
@@ -63,33 +53,24 @@ add_library(${PROJECT_NAME}
   src/QuadrotorInterface.cpp
   src/QuadrotorSystemDynamics.cpp
 )
-add_dependencies(${PROJECT_NAME}
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  dl
+
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 target_compile_options(${PROJECT_NAME} PUBLIC ${OCS2_CXX_FLAGS})
 
 # python bindings
-pybind11_add_module(QuadrotorPyBindings SHARED
+pybind11_add_module(QuadrotorPyBindings 
   src/pyBindModule.cpp
 )
-add_dependencies(QuadrotorPyBindings
+target_link_libraries(QuadrotorPyBindings PRIVATE 
   ${PROJECT_NAME}
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(QuadrotorPyBindings PRIVATE
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+  dl
 )
 set_target_properties(QuadrotorPyBindings
-    PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}
+    PROPERTIES LIBRARY_OUTPUT_DIRECTORY "bin"
 )
 
-catkin_python_setup()
 
 #########################
 ###   CLANG TOOLING   ###
@@ -110,34 +91,44 @@ endif(cmake_clang_tools_FOUND)
 ## Install ##
 #############
 
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/${PROJECT_NAME}
 )
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 install(DIRECTORY config
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DESTINATION share/${PROJECT_NAME}/
 )
 install(TARGETS QuadrotorPyBindings
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
 )
 
 #############
 ## Testing ##
 #############
+find_package(ament_lint_auto REQUIRED)
+ament_lint_auto_find_test_dependencies()
+find_package(ament_cmake_gtest)
 
-catkin_add_gtest(${PROJECT_NAME}_PyBindingsTest
+ament_add_gtest(${PROJECT_NAME}_PyBindingsTest
   test/PyBindingsTest.cpp
 )
 target_include_directories(${PROJECT_NAME}_PyBindingsTest
   PRIVATE ${PROJECT_BINARY_DIR}/include
 )
+ament_target_dependencies(${PROJECT_NAME}_PyBindingsTest
+  ${dependencies}
+)
 target_link_libraries(${PROJECT_NAME}_PyBindingsTest
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
 )
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_package()

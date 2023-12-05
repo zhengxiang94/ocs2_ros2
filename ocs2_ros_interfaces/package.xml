@@ -11,12 +11,12 @@
   <maintainer email="jcarius@ethz.ch">Jan Carius</maintainer>
   <maintainer email="rgrandia@ethz.ch">Ruben Grandia</maintainer>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
   <build_depend>cmake_modules</build_depend>
   <build_depend>cmake_clang_tools</build_depend>
 
-  <depend>roscpp</depend>
+  <depend>rclcpp</depend>
   <depend>ocs2_msgs</depend>
   <depend>ocs2_core</depend>
   <depend>ocs2_mpc</depend>
@@ -25,5 +25,10 @@
   <depend>geometry_msgs</depend>
   <depend>interactive_markers</depend>
   <exec_depend>rqt_multiplot</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+
+  <export>                               
+   <build_type>ament_cmake</build_type>
+  </export> 
 
 </package>

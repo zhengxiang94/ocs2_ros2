@@ -36,10 +36,10 @@ namespace ocs2 {
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <typename GetValFunc, typename SetValFunc, typename Scalar>
-void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, size_t start, size_t end,
-                              std::vector<size_t>& vBuffer, std::vector<Scalar>& zBuffer) {
+void computeDistanceTransform(std::size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, std::size_t start, std::size_t end,
+                              std::vector<std::size_t>& vBuffer, std::vector<Scalar>& zBuffer) {
   computeDistanceTransform(
-      numSamples, std::forward<GetValFunc>(getValue), std::forward<SetValFunc>(setValue), [&](size_t x, size_t ind) {}, start, end, vBuffer,
+      numSamples, std::forward<GetValFunc>(getValue), std::forward<SetValFunc>(setValue), [&](std::size_t x, std::size_t ind) {}, start, end, vBuffer,
       zBuffer);
 }
 
@@ -47,8 +47,8 @@ void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFu
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <typename GetValFunc, typename SetValFunc, typename SetImageIndexFunc, typename Scalar>
-void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, SetImageIndexFunc&& setImageIndex,
-                              size_t start, size_t end, std::vector<size_t>& vBuffer, std::vector<Scalar>& zBuffer) {
+void computeDistanceTransform(std::size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, SetImageIndexFunc&& setImageIndex,
+                              std::size_t start, std::size_t end, std::vector<std::size_t>& vBuffer, std::vector<Scalar>& zBuffer) {
   constexpr auto PlusInfinity = std::numeric_limits<Scalar>::max();
   constexpr auto MinusInfinity = std::numeric_limits<Scalar>::lowest();
 
@@ -64,10 +64,10 @@ void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFu
   vBuffer[start] = start;
   zBuffer[start] = MinusInfinity;
   zBuffer[start + 1] = PlusInfinity;
-  size_t k = start;  // index of rightmost parabola in lower envelope
+  std::size_t k = start;  // index of rightmost parabola in lower envelope
 
   // compute lower envelope
-  for (size_t q = start + 1; q < end; q++) {
+  for (std::size_t q = start + 1; q < end; q++) {
     k++;  // compensates for first line of next do-while block
 
     Scalar s = 0;
@@ -85,11 +85,11 @@ void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFu
 
   // fill in values of distance transform
   k = start;
-  for (size_t q = start; q < end; q++) {
+  for (std::size_t q = start; q < end; q++) {
     while (zBuffer[k + 1] < q) {
       k++;
     }
-    const size_t ind = vBuffer[k];
+    const std::size_t ind = vBuffer[k];
     const Scalar val = (q - ind) * (q - ind) + getValue(ind);
     setValue(q, val);
     setImageIndex(q, ind);

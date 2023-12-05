@@ -1,36 +1,30 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_python_interface)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
+## Find ament_cmake macros and libraries
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_mpc REQUIRED)
+find_package(ocs2_ddp REQUIRED)
+find_package(ocs2_robotic_tools REQUIRED)
+
+find_package(Boost REQUIRED COMPONENTS
+  system
+  filesystem
+  log_setup
+  log
+)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
+set(dependencies
   ocs2_mpc
   ocs2_ddp
   ocs2_robotic_tools
+  Eigen3
 )
-
-## Find catkin macros and libraries
-find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
-
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 # Generate compile_commands.json for clang tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-)
 
 ###########
 ## Build ##
@@ -38,35 +32,47 @@ catkin_package(
 
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME}
   src/PythonInterface.cpp
+)
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 
 #############
 ## Install ##
 #############
 
-install(TARGETS ${PROJECT_NAME}
-        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/${PROJECT_NAME}
 )
 
-install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+
 
 #############
 ## Testing ##
 #############
+find_package(ament_lint_auto REQUIRED)
+ament_lint_auto_find_test_dependencies()
+find_package(ament_cmake_gtest REQUIRED)
 
-catkin_add_gtest(testDummyPyBindings
+ament_add_gtest(testDummyPyBindings
   test/testDummyPyBindings.cpp
 )
 target_link_libraries(testDummyPyBindings
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_package()

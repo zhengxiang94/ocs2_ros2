@@ -1,8 +1,32 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(ocs2_ros_interfaces)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
-  roscpp
+# find_package(ament_cmake_auto REQUIRED) 
+# ament_auto_find_build_dependencies()
+
+## Find ament_cmake macros and libraries
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(ocs2_msgs REQUIRED)
+find_package(ocs2_mpc REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(interactive_markers REQUIRED)
+
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Boost REQUIRED COMPONENTS
+  system
+  filesystem
+  log_setup
+  log
+)
+
+# Generate compile_commands.json for clang tools
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(dependencies
+  rclcpp
   ocs2_msgs
   ocs2_core
   ocs2_mpc
@@ -10,34 +34,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   visualization_msgs
   geometry_msgs
   interactive_markers
-)
-
-## Find catkin macros and libraries
-find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
-
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-find_package(Boost REQUIRED COMPONENTS filesystem)
-
-# Generate compile_commands.json for clang tools
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-###################################
-## catkin specific configuration ##
-###################################
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-  DEPENDS
-    Boost
+  Boost
 )
 
 ###########
@@ -49,7 +46,6 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME}
@@ -67,19 +63,19 @@ add_library(${PROJECT_NAME}
   src/visualization/VisualizationHelpers.cpp
   src/visualization/VisualizationColors.cpp
 )
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 target_compile_options(${PROJECT_NAME} PUBLIC ${OCS2_CXX_FLAGS})
 
 add_executable(test_custom_callback_queue
   test/test_custom_callback_queue.cpp
 )
-add_dependencies(test_custom_callback_queue
-  ${catkin_EXPORTED_TARGETS}
+ament_target_dependencies(test_custom_callback_queue
+  ${dependencies}
 )
 target_link_libraries(test_custom_callback_queue
-  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
 )
 target_compile_options(test_custom_callback_queue PRIVATE ${OCS2_CXX_FLAGS})
 
@@ -87,23 +83,22 @@ target_compile_options(test_custom_callback_queue PRIVATE ${OCS2_CXX_FLAGS})
 add_executable(multiplot_remap
   src/multiplot/MultiplotRemap.cpp
 )
-add_dependencies(multiplot_remap
-  ${catkin_EXPORTED_TARGETS}
+ament_target_dependencies(multiplot_remap
+  ${dependencies} 
 )
-target_link_libraries(multiplot_remap
+target_link_libraries(test_custom_callback_queue
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
 )
 target_compile_options(multiplot_remap PRIVATE ${OCS2_CXX_FLAGS})
 
 add_executable(${PROJECT_NAME}_lintTarget
   src/lintTarget.cpp
 )
-add_dependencies(${PROJECT_NAME}_lintTarget
-  ${catkin_EXPORTED_TARGETS}
+ament_target_dependencies(${PROJECT_NAME}_lintTarget
+  ${dependencies} 
 )
 target_link_libraries(${PROJECT_NAME}_lintTarget
-  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
 )
 
 #########################
@@ -124,28 +119,28 @@ endif(cmake_clang_tools_FOUND)
 ## Install ##
 #############
 
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/${PROJECT_NAME}
 )
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-install(TARGETS multiplot_remap
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+install(TARGETS multiplot_remap DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch multiplot
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DESTINATION include/${PROJECT_NAME}/
 )
 
 #############
 ## Testing ##
 #############
-## Info ==============================
-## to run tests, cd package folder and run
-## $ catkin build -DCMAKE_BUILD_TYPE=RelWithDebInfo --this
-## $ catkin run_tests --no-deps --this
-## to see the summary of unit test results run
-## $ catkin_test_results ../../../build/ocs2_ros_interfaces
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_package()
+# ament_auto_package()

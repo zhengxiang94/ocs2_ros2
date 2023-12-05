@@ -1,37 +1,20 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_mpc)
 
-find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  ocs2_core
-  ocs2_oc
-)
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_core REQUIRED) 
+find_package(ocs2_oc REQUIRED)
+find_package(Eigen3 3.3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS
   system
   filesystem
+  log_setup
+  log
 )
-
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 # Generate compile_commands.json for clang tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    ocs2_core
-    ocs2_oc
-  DEPENDS
-    Boost
-)
 
 ###########
 ## Build ##
@@ -41,7 +24,12 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
+)
+
+set(dependencies
+    ocs2_core
+    ocs2_oc
+    Boost
 )
 
 add_library(${PROJECT_NAME}
@@ -53,16 +41,19 @@ add_library(${PROJECT_NAME}
   src/MPC_MRT_Interface.cpp
   # src/MPC_OCS2.cpp
 )
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 target_compile_options(${PROJECT_NAME} PUBLIC ${OCS2_CXX_FLAGS})
 
 add_executable(${PROJECT_NAME}_lintTarget
   src/lintTarget.cpp
 )
+ament_target_dependencies(${PROJECT_NAME}_lintTarget
+  ${dependencies}
+)
 target_link_libraries(${PROJECT_NAME}_lintTarget
-  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
 )
 
 #########################
@@ -85,24 +76,22 @@ endif(cmake_clang_tools_FOUND)
 
 install(
   TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/${PROJECT_NAME}
 )
-
-install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME}) 
 
 #############
 ## Testing ##
 #############
+find_package(ament_lint_auto REQUIRED)
+ament_lint_auto_find_test_dependencies()
+find_package(ament_cmake_gtest REQUIRED)
 
-#catkin_add_gtest(testMPC_OCS2
-#  test/testMPC_OCS2.cpp
-#)
-#target_link_libraries(testMPC_OCS2
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#)
-#target_compile_options(testMPC_OCS2 PRIVATE ${OCS2_CXX_FLAGS})
-
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_package()

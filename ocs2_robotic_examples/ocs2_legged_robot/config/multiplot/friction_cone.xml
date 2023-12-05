@@ -35,7 +35,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/LF_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/LF_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </x_axis>
                                 <y_axis>
@@ -48,7 +48,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/LF_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/LF_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </y_axis>
                             </axes>
@@ -109,7 +109,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/RF_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/RF_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </x_axis>
                                 <y_axis>
@@ -122,7 +122,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/RF_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/RF_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </y_axis>
                             </axes>
@@ -185,7 +185,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/LH_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/LH_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </x_axis>
                                 <y_axis>
@@ -198,7 +198,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/LH_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/LH_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </y_axis>
                             </axes>
@@ -259,7 +259,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/RH_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/RH_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </x_axis>
                                 <y_axis>
@@ -272,7 +272,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/metrics/RH_FOOT_frictionCone/0MsLookAhead</topic>
+                                    <topic>/metrics/RH_FOOT_frictionCone/MsLookAhead0</topic>
                                     <type>ocs2_msgs/constraint</type>
                                 </y_axis>
                             </axes>

@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_double_integrator_ros)
 
 # Generate compile_commands.json for clang tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
+set(dependencies
   ocs2_core
   ocs2_ddp
   ocs2_mpc
@@ -12,33 +13,27 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   ocs2_double_integrator
   ocs2_robotic_tools
   ocs2_robotic_assets
+  Boost
 )
 
-find_package(catkin REQUIRED COMPONENTS
-  roslib
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_core REQUIRED)
+find_package(ocs2_ddp REQUIRED)
+find_package(ocs2_mpc REQUIRED)
+find_package(ocs2_ros_interfaces REQUIRED)
+find_package(ocs2_double_integrator REQUIRED)
+find_package(ocs2_robotic_tools REQUIRED)
+find_package(ocs2_robotic_assets REQUIRED)
+find_package(rclcpp REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS
   system
   filesystem
+  log_setup
+  log
 )
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-  DEPENDS
-    Boost
-)
 
 ###########
 ## Build ##
@@ -48,18 +43,14 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
 )
 
 # Mpc node
 add_executable(double_integrator_mpc
   src/DoubleIntegratorMpcNode.cpp
 )
-add_dependencies(double_integrator_mpc
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(double_integrator_mpc
-  ${catkin_LIBRARIES}
+ament_target_dependencies(double_integrator_mpc
+  ${dependencies}
 )
 
 # Dummy node
@@ -67,23 +58,16 @@ add_executable(double_integrator_dummy_test
   src/DummyDoubleIntegratorNode.cpp
   src/DoubleIntegratorDummyVisualization.cpp
 )
-add_dependencies(double_integrator_dummy_test
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(double_integrator_dummy_test
-  ${catkin_LIBRARIES}
+ament_target_dependencies(double_integrator_dummy_test
+  ${dependencies}
 )
 
 # Target node
 add_executable(double_integrator_target
   src/DoubleIntegratorTargetPoseCommand.cpp
 )
-add_dependencies(double_integrator_target
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(double_integrator_target
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
+ament_target_dependencies(double_integrator_target
+  ${dependencies}
 )
 target_compile_options(double_integrator_target PRIVATE ${OCS2_CXX_FLAGS})
 
@@ -109,16 +93,19 @@ endif(cmake_clang_tools_FOUND)
 ## Install ##
 #############
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(
   TARGETS
     double_integrator_mpc
     double_integrator_dummy_test
     double_integrator_target
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+    DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY launch rviz
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DESTINATION share/${PROJECT_NAME}/
 )
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_package()

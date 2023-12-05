@@ -1,12 +1,13 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_mobile_manipulator_ros)
 
 # Generate compile_commands.json for clang tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
-  roslib
-  tf
+set(dependencies
+  rclcpp
+  tf2_ros
   urdf
   kdl_parser
   robot_state_publisher
@@ -22,36 +23,41 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   ocs2_self_collision
   ocs2_self_collision_visualization
   ocs2_mobile_manipulator
+  Boost
+  pinocchio
 )
 
-find_package(catkin REQUIRED COMPONENTS
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(urdf REQUIRED)
+find_package(kdl_parser REQUIRED)
+find_package(robot_state_publisher REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+find_package(ocs2_ros_interfaces REQUIRED)
+find_package(ocs2_core REQUIRED)
+find_package(ocs2_ddp REQUIRED)
+find_package(ocs2_mpc REQUIRED)
+find_package(ocs2_robotic_tools REQUIRED)
+find_package(ocs2_robotic_assets REQUIRED)
+find_package(ocs2_pinocchio_interface REQUIRED)
+find_package(ocs2_self_collision REQUIRED)
+find_package(ocs2_self_collision_visualization REQUIRED)
+find_package(ocs2_mobile_manipulator REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS
   system
   filesystem
+  log_setup
+  log
 )
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(pinocchio REQUIRED pinocchio)
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-  DEPENDS
-    Boost
-    pinocchio
-)
 
 ###########
 ## Build ##
@@ -68,25 +74,17 @@ set(FLAGS
 
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${pinocchio_INCLUDE_DIRS}
-)
-
-link_directories(
-  ${pinocchio_LIBRARY_DIRS}
 )
 
 # MPC node
 add_executable(mobile_manipulator_mpc_node
   src/MobileManipulatorMpcNode.cpp
 )
-add_dependencies(mobile_manipulator_mpc_node
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(mobile_manipulator_mpc_node
-  ${catkin_LIBRARIES}
+ament_target_dependencies(mobile_manipulator_mpc_node
+  ${dependencies}
 )
 target_compile_options(mobile_manipulator_mpc_node PUBLIC ${FLAGS})
 
@@ -94,11 +92,8 @@ target_compile_options(mobile_manipulator_mpc_node PUBLIC ${FLAGS})
 add_executable(mobile_manipulator_distance_visualization
   src/MobileManipulatorDistanceVisualization.cpp
 )
-add_dependencies(mobile_manipulator_distance_visualization
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(mobile_manipulator_distance_visualization
-  ${catkin_LIBRARIES}
+ament_target_dependencies(mobile_manipulator_distance_visualization
+  ${dependencies}
 )
 target_compile_options(mobile_manipulator_distance_visualization PUBLIC ${FLAGS})
 
@@ -107,11 +102,8 @@ add_executable(mobile_manipulator_dummy_mrt_node
   src/MobileManipulatorDummyMRT.cpp
   src/MobileManipulatorDummyVisualization.cpp
 )
-add_dependencies(mobile_manipulator_dummy_mrt_node
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(mobile_manipulator_dummy_mrt_node
-  ${catkin_LIBRARIES}
+ament_target_dependencies(mobile_manipulator_dummy_mrt_node
+  ${dependencies}
 )
 target_compile_options(mobile_manipulator_dummy_mrt_node PUBLIC ${FLAGS})
 
@@ -119,11 +111,8 @@ target_compile_options(mobile_manipulator_dummy_mrt_node PUBLIC ${FLAGS})
 add_executable(mobile_manipulator_target
   src/MobileManipulatorTarget.cpp
 )
-add_dependencies(mobile_manipulator_target
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(mobile_manipulator_target
-  ${catkin_LIBRARIES}
+ament_target_dependencies(mobile_manipulator_target
+  ${dependencies}
 )
 target_compile_options(mobile_manipulator_target PUBLIC ${FLAGS})
 
@@ -146,17 +135,20 @@ endif (cmake_clang_tools_FOUND)
 ## Install ##
 #############
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 install(
   TARGETS 
     mobile_manipulator_mpc_node 
     mobile_manipulator_distance_visualization
     mobile_manipulator_dummy_mrt_node 
     mobile_manipulator_target
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+    DESTINATION lib/${PROJECT_NAME}
 )
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY launch rviz
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DESTINATION share/${PROJECT_NAME}/
 )
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_package()

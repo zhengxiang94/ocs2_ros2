@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
 project(blasfeo_catkin)
 
-find_package(catkin REQUIRED)
+find_package(ament_cmake REQUIRED)
 
 include(FetchContent)
 
 # Define directories
-set(BLASFEO_DEVEL_PREFIX ${CATKIN_DEVEL_PREFIX} CACHE STRING "Blasfeo install path")
-set(BLASFEO_INCLUDE_DIR ${BLASFEO_DEVEL_PREFIX}/include)
-set(BLASFEO_LIB_DIR ${BLASFEO_DEVEL_PREFIX}/lib)
+set(BLASFEO_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE STRING "Blasfeo install path")
+set(BLASFEO_INCLUDE_DIR ${BLASFEO_INSTALL_PREFIX}/include)
+set(BLASFEO_LIB_DIR ${BLASFEO_INSTALL_PREFIX}/lib)
 set(BLASFEO_DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}/download)
 set(BLASFEO_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/build)
 
@@ -35,19 +35,20 @@ FetchContent_Declare(blasfeoDownload
 )
 FetchContent_MakeAvailable(blasfeoDownload)
 
-# Copy header to where catkin expects them
+# Copy header to where ament_cmake expects them
 file(GLOB_RECURSE HEADERS "${BLASFEO_DOWNLOAD_DIR}/include/*.h")
 foreach(HEADER_FILE ${HEADERS})
 	message(STATUS "FOUND HEADER: " ${HEADER_FILE})
 	file(COPY ${HEADER_FILE} DESTINATION ${BLASFEO_INCLUDE_DIR})
 endforeach()
 
-# Install the library where catkin expects them
+# Install the library where ament_cmake expects them
 set_target_properties(blasfeo PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BLASFEO_LIB_DIR})
 
 # Propagate dependencies
-catkin_package(
-	INCLUDE_DIRS ${BLASFEO_INCLUDE_DIR}
-	LIBRARIES blasfeo
-	CFG_EXTRAS blasfeo-extras.cmake
+ament_export_include_directories(include)
+ament_export_dependencies(
+	blasfeo
 )
+
+ament_package(CONFIG_EXTRAS "cmake/blasfeo-extras.cmake.in")

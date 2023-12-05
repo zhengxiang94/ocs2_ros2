@@ -1,10 +1,8 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(ocs2_core)
 
-find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  ocs2_thirdparty
-)
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_thirdparty REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS
   system
@@ -21,7 +19,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
-if (Threads_FOUND) # Rename for catkin
+if (Threads_FOUND) # Rename for ament_cmake
   set(Threads_INCLUDE_DIRS ${THREADS_PTHREADS_INCLUDE_DIR})
   set(Threads_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 endif (Threads_FOUND)
@@ -30,27 +28,6 @@ find_package(OpenMP REQUIRED)
 # Load ocs2 compile flags
 include(cmake/ocs2_cxx_flags.cmake)
 message(STATUS "OCS2_CXX_FLAGS: " ${OCS2_CXX_FLAGS})
-
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-    test/include
-    ${EIGEN3_INCLUDE_DIRS}
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    ocs2_thirdparty
-  DEPENDS
-    Boost
-    OpenMP_CXX
-    Threads
-  CFG_EXTRAS
-    ocs2_cxx_flags.cmake
-)
 
 ###########
 ## Build ##
@@ -61,7 +38,14 @@ include_directories(
   test/include
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
+)
+
+set(dependencies
+  ocs2_thirdparty
+  Boost
+  Eigen3
+  OpenMP_CXX
+  Threads
 )
 
 # Declare a C++ library
@@ -150,19 +134,19 @@ add_library(${PROJECT_NAME}
   src/penalties/penalties/SquaredHingePenalty.cpp
   src/thread_support/ThreadPool.cpp
 )
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  OpenMP::OpenMP_CXX
-  Threads::Threads
+ament_target_dependencies(${PROJECT_NAME}
+    ${dependencies}
 )
 target_compile_options(${PROJECT_NAME} PUBLIC ${OCS2_CXX_FLAGS})
 
 add_executable(${PROJECT_NAME}_lintTarget
   src/lintTarget.cpp
 )
+ament_target_dependencies(${PROJECT_NAME}_lintTarget
+    ${dependencies}
+)
 target_link_libraries(${PROJECT_NAME}_lintTarget
-  ${Boost_LIBRARIES}
+  ${PROJECT_NAME}
 )
 
 #########################
@@ -186,95 +170,70 @@ endif(cmake_clang_tools_FOUND)
 #############
 
 install(
-  TARGETS
-      ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  TARGETS ocs2_core
+  EXPORT export_ocs2_core
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/ocs2_core
 )
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
-install(DIRECTORY test/include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+install(DIRECTORY test/include/
+  DESTINATION include/${PROJECT_NAME}
 )
 
 #############
 ## Testing ##
 #############
-## Info ==============================
-## to run tests, cd package folder and run
-## $ catkin build -DCMAKE_BUILD_TYPE=RelWithDebInfo --this
-## $ catkin run_tests --no-deps --this
-## to see the summary of unit test results run
-## $ catkin_test_results ../../../build/ocs2_core
+find_package(ament_lint_auto REQUIRED)
+ament_lint_auto_find_test_dependencies()
+find_package(ament_cmake_gtest REQUIRED)
 
-catkin_add_gtest(test_control
+ament_add_gtest(test_control
   test/control/testLinearController.cpp
   test/control/testFeedforwardController.cpp
 )
-target_link_libraries(test_control
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
-)
+target_link_libraries(test_control ${PROJECT_NAME})
+ament_target_dependencies(test_control ${dependencies})
 
-catkin_add_gtest(initialization_unittest
+ament_add_gtest(initialization_unittest
   test/initialization/InitializationTest.cpp
 )
-target_link_libraries(initialization_unittest
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  gtest_main
-)
+target_link_libraries(initialization_unittest ${PROJECT_NAME})
+ament_target_dependencies(initialization_unittest ${dependencies})
 
-catkin_add_gtest(test_integration
+ament_add_gtest(test_integration
   test/integration/testSensitivityIntegrator.cpp
   test/integration/IntegrationTest.cpp
   test/integration/testRungeKuttaDormandPrince5.cpp
   test/integration/TrapezoidalIntegrationTest.cpp
 )
-target_link_libraries(test_integration
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  gtest_main
-)
+target_link_libraries(test_integration ${PROJECT_NAME})
+ament_target_dependencies(test_integration ${dependencies})
 
-catkin_add_gtest(interpolation_unittest
+ament_add_gtest(interpolation_unittest
   test/misc/testInterpolation.cpp
 )
-target_link_libraries(interpolation_unittest
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
-)
+target_link_libraries(interpolation_unittest ${PROJECT_NAME})
+ament_target_dependencies(interpolation_unittest ${dependencies})
 
-catkin_add_gtest(${PROJECT_NAME}_cppadcg
+ament_add_gtest(${PROJECT_NAME}_cppadcg
   test/cppad_cg/testCppADCG_dynamics.cpp
   test/cppad_cg/testSparsityHelpers.cpp
   test/cppad_cg/testCppAdInterface.cpp
 )
-target_link_libraries(${PROJECT_NAME}_cppadcg
-  ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  -lm -ldl
-  gtest_main
-)
+target_link_libraries(${PROJECT_NAME}_cppadcg ${PROJECT_NAME})
+ament_target_dependencies(${PROJECT_NAME}_cppadcg ${dependencies})
 
-catkin_add_gtest(test_transferfunctionbase
+ament_add_gtest(test_transferfunctionbase
   test/dynamics/testTransferfunctionBase.cpp
 )
-target_link_libraries(test_transferfunctionbase
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
-)
+target_link_libraries(test_transferfunctionbase ${PROJECT_NAME})
+ament_target_dependencies(test_transferfunctionbase ${dependencies})
 
-catkin_add_gtest(${PROJECT_NAME}_loopshaping
+ament_add_gtest(${PROJECT_NAME}_loopshaping
   test/loopshaping/testLoopshapingConfiguration.cpp
   test/loopshaping/testLoopshapingAugmentedLagrangian.cpp
   test/loopshaping/testLoopshapingConstraint.cpp
@@ -285,15 +244,10 @@ catkin_add_gtest(${PROJECT_NAME}_loopshaping
   test/loopshaping/testLoopshapingFilterDynamics.cpp
   test/loopshaping/testLoopshapingPreComputation.cpp
 )
-target_link_libraries(${PROJECT_NAME}_loopshaping
-  ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  -lstdc++fs
-  gtest_main
-)
+target_link_libraries(${PROJECT_NAME}_loopshaping ${PROJECT_NAME} ${Boost_LIBRARIES} -lstdc++fs)
+ament_target_dependencies(${PROJECT_NAME}_loopshaping ${dependencies} Boost)
 
-catkin_add_gtest(${PROJECT_NAME}_test_misc
+ament_add_gtest(${PROJECT_NAME}_test_misc
   test/misc/testInterpolation.cpp
   test/misc/testLinearAlgebra.cpp
   test/misc/testLogging.cpp
@@ -302,111 +256,99 @@ catkin_add_gtest(${PROJECT_NAME}_test_misc
 )
 target_link_libraries(${PROJECT_NAME}_test_misc
   ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(${PROJECT_NAME}_test_misc ${dependencies})
 
-catkin_add_gtest(test_dynamics
+ament_add_gtest(test_dynamics
   test/dynamics/testSystemDynamicsLinearizer.cpp
   test/dynamics/testSystemDynamicsPreComputation.cpp
 )
 target_link_libraries(test_dynamics
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(test_dynamics ${dependencies})
 
-catkin_add_gtest(test_cost
+ament_add_gtest(test_cost
   test/cost/testCostCollection.cpp
   test/cost/testCostCppAd.cpp
   test/cost/testQuadraticCostFunction.cpp
 )
 target_link_libraries(test_cost
   ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(test_cost ${dependencies})
 
-catkin_add_gtest(test_constraint
+ament_add_gtest(test_constraint
   test/constraint/testConstraintCollection.cpp
   test/constraint/testConstraintCppAd.cpp
   test/constraint/testLinearConstraint.cpp
 )
 target_link_libraries(test_constraint
   ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(test_constraint ${dependencies})
 
-catkin_add_gtest(test_metrics
+ament_add_gtest(test_metrics
   test/model_data/testMetrics.cpp
 )
 target_link_libraries(test_metrics
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(test_metrics ${dependencies})
 
-catkin_add_gtest(test_multiplier
+ament_add_gtest(test_multiplier
   test/model_data/testMultiplier.cpp
 )
 target_link_libraries(test_multiplier
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(test_multiplier ${dependencies})
 
-catkin_add_gtest(test_ModelData
+ament_add_gtest(test_ModelData
   test/model_data/testModelData.cpp
 )
 target_link_libraries(test_ModelData
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(test_ModelData ${dependencies})
 
-catkin_add_gtest(test_ModeSchedule
+ament_add_gtest(test_ModeSchedule
   test/reference/testModeSchedule.cpp
 )
 target_link_libraries(test_ModeSchedule
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  gtest_main
+    ${PROJECT_NAME}
 )
+ament_target_dependencies(test_ModeSchedule ${dependencies})
 
-catkin_add_gtest(test_softConstraint
+ament_add_gtest(test_softConstraint
   test/soft_constraint/testSoftConstraint.cpp
   test/soft_constraint/testDoubleSidedPenalty.cpp
 )
 target_link_libraries(test_softConstraint
   ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(test_softConstraint ${dependencies})
 
-catkin_add_gtest(${PROJECT_NAME}_test_thread_support
+ament_add_gtest(${PROJECT_NAME}_test_thread_support
   test/thread_support/testBufferedValue.cpp
   test/thread_support/testSynchronized.cpp
   test/thread_support/testThreadPool.cpp
 )
 target_link_libraries(${PROJECT_NAME}_test_thread_support
   ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(${PROJECT_NAME}_test_thread_support ${dependencies})
 
-catkin_add_gtest(${PROJECT_NAME}_test_core
+ament_add_gtest(${PROJECT_NAME}_test_core
   test/testPrecomputation.cpp
   test/testTypes.cpp
   )
 target_link_libraries(${PROJECT_NAME}_test_core
   ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-  gtest_main
 )
+ament_target_dependencies(${PROJECT_NAME}_test_core ${dependencies})
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_ocs2_core HAS_LIBRARY_TARGET)
+ament_package(CONFIG_EXTRAS "cmake/ocs2_cxx_flags.cmake")

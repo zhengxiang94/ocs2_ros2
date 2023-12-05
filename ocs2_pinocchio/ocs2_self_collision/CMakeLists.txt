@@ -1,40 +1,34 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_self_collision)
 
 # Generate compile_commands.json for clang tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
+set(dependencies
   ocs2_core
   ocs2_robotic_tools
   ocs2_pinocchio_interface
+  hpp-fcl
+  pinocchio
 )
 
-find_package(catkin REQUIRED COMPONENTS
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_core REQUIRED)
+find_package(ocs2_robotic_tools REQUIRED)
+find_package(ocs2_pinocchio_interface REQUIRED)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(pinocchio REQUIRED pinocchio)
-pkg_check_modules(hpp-fcl REQUIRED hpp-fcl)
+find_package(pinocchio REQUIRED)
+find_package(hpp-fcl REQUIRED)
 # requires liboctomap-dev and libassimp-dev
-
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-  DEPENDS
-    pinocchio
+find_package(Boost REQUIRED COMPONENTS
+  system
+  filesystem
+  log_setup
+  log
 )
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 ###########
 ## Build ##
@@ -43,6 +37,7 @@ catkin_package(
 set(FLAGS
   ${OCS2_CXX_FLAGS}
   ${pinocchio_CFLAGS_OTHER}
+  -DPINOCCHIO_WITH_HPP_FCL
   -Wno-ignored-attributes
   -Wno-invalid-partial-specialization   # to silence warning with unsupported Eigen Tensor
   -DPINOCCHIO_URDFDOM_TYPEDEF_SHARED_PTR
@@ -51,14 +46,9 @@ set(FLAGS
 
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${pinocchio_INCLUDE_DIRS}
   ${hpp-fcl_INCLUDE_DIRS}
-)
-
-link_directories(
-  ${pinocchio_LIBRARY_DIRS}
 )
 
 # ocs2 pinocchio interface library
@@ -69,12 +59,8 @@ add_library(${PROJECT_NAME}
   src/SelfCollisionConstraint.cpp
   src/SelfCollisionConstraintCppAd.cpp
 )
-add_dependencies(${PROJECT_NAME}
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${pinocchio_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 target_compile_options(${PROJECT_NAME} PUBLIC ${FLAGS})
 
@@ -97,15 +83,17 @@ endif (cmake_clang_tools_FOUND)
 ## Install ##
 #############
 
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/${PROJECT_NAME}
 )
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
-############
-# Testing ##
-############
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_package()

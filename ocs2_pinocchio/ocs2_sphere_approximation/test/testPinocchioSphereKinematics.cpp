@@ -26,22 +26,17 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
-#include <pinocchio/fwd.hpp>
-
-#include <pinocchio/algorithm/frames.hpp>
-#include <pinocchio/algorithm/kinematics.hpp>
-#include <pinocchio/multibody/geometry.hpp>
-
+#include <gtest/gtest.h>
 #include <ocs2_pinocchio_interface/urdf.h>
+#include <ocs2_robotic_assets/package_path.h>
+#include <ocs2_robotic_tools/common/SkewSymmetricMatrix.h>
 #include <ocs2_sphere_approximation/PinocchioSphereKinematics.h>
 #include <ocs2_sphere_approximation/PinocchioSphereKinematicsCppAd.h>
 
-#include <ocs2_robotic_assets/package_path.h>
-#include <ocs2_robotic_tools/common/SkewSymmetricMatrix.h>
-
-#include <ocs2_pinocchio_interface/urdf.h>
-
-#include <gtest/gtest.h>
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/fwd.hpp>
+#include <pinocchio/multibody/geometry.hpp>
 
 using vector3_t = Eigen::Matrix<ocs2::scalar_t, 3, 1>;
 
@@ -54,13 +49,30 @@ class DummyMapping final : public ocs2::PinocchioStateInputMapping<SCALAR> {
 
   DummyMapping() = default;
   ~DummyMapping() override = default;
-  DummyMapping<SCALAR>* clone() const override { return new DummyMapping<SCALAR>(*this); }
+  DummyMapping<SCALAR>* clone() const override {
+    return new DummyMapping<SCALAR>(*this);
+  }
 
-  vector_t getPinocchioJointPosition(const vector_t& state) const override { return state; }
+  vector_t getPinocchioJointPosition(const vector_t& state) const override {
+    return state;
+  }
 
-  vector_t getPinocchioJointVelocity(const vector_t& state, const vector_t& input) const override { return input; }
+  vector_t getPinocchioJointVelocity(const vector_t& state,
+                                     const vector_t& input) const override {
+    return input;
+  }
 
-  std::pair<matrix_t, matrix_t> getOcs2Jacobian(const vector_t& state, const matrix_t& Jq, const matrix_t& Jv) const override {
+  std::pair<matrix_t, matrix_t> getOcs2Jacobian(
+      const vector_t& state, const matrix_t& Jq,
+      const matrix_t& Jv) const override {
+    // if (Jq.cols() != state.size())
+    // {
+    //   matrix_t dfdx;
+    //   dfdx.setZero(Jq.rows(), state.size());
+    //   dfdx.block(0,0,Jq.rows(),Jq.cols()) = Jq;
+    //   dfdx.conservativeResize(Jq.rows(), state.size());
+    //   return {dfdx, Jv};
+    // }
     return {Jq, Jv};
   }
 };
@@ -70,16 +82,27 @@ class TestSphereKinematics : public ::testing::Test {
   using quaternion_t = Eigen::Quaternion<ocs2::scalar_t>;
 
   TestSphereKinematics() {
-    const std::string urdfFile = ocs2::robotic_assets::getPath() + "/resources/mobile_manipulator/mabi_mobile/urdf/mabi_mobile.urdf";
-    pinocchioInterfacePtr.reset(new ocs2::PinocchioInterface(ocs2::getPinocchioInterfaceFromUrdfFile(urdfFile)));
-    pinocchioSphereInterfacePtr.reset(new ocs2::PinocchioSphereInterface(*pinocchioInterfacePtr, {"ARM", "SHOULDER", "FOREARM", "WRIST_1"},
-                                                                         {0.20, 0.10, 0.05, 0.05}, 0.7));
-    sphereKinematicsPtr.reset(new ocs2::PinocchioSphereKinematics(*pinocchioSphereInterfacePtr, pinocchioMapping));
+    const std::string urdfFile =
+        ocs2::robotic_assets::getPath() +
+        "/resources/mobile_manipulator/mabi_mobile/urdf/mabi_mobile.urdf";
+    std::cout << urdfFile << std::endl;
+    pinocchioInterfacePtr = std::make_unique<ocs2::PinocchioInterface>(
+        ocs2::getPinocchioInterfaceFromUrdfFile(urdfFile));
+    pinocchioSphereInterfacePtr =
+        std::make_unique<ocs2::PinocchioSphereInterface>(
+            ocs2::PinocchioSphereInterface{
+                *pinocchioInterfacePtr,
+                {"ARM", "SHOULDER", "FOREARM", "WRIST_1"},
+                {0.20, 0.10, 0.05, 0.05},
+                0.7});
+    sphereKinematicsPtr = std::make_unique<ocs2::PinocchioSphereKinematics>(
+        *pinocchioSphereInterfacePtr, pinocchioMapping);
     sphereKinematicsCppAdPtr.reset(new ocs2::PinocchioSphereKinematicsCppAd(
-        *pinocchioInterfacePtr, *pinocchioSphereInterfacePtr, pinocchioMappingCppAd, pinocchioInterfacePtr->getModel().njoints, 0,
+        *pinocchioInterfacePtr, *pinocchioSphereInterfacePtr,
+        pinocchioMappingCppAd, pinocchioInterfacePtr->getModel().nq, 0,
         "pinocchio_sphere_kinematics", "/tmp/ocs2", true, true));
 
-    x.resize(pinocchioInterfacePtr->getModel().njoints);
+    x.resize(pinocchioInterfacePtr->getModel().nq);
     // taken form config/mpc/task.info
     x(0) = 2.5;   // SH_ROT
     x(1) = -1.0;  // SH_FLE
@@ -91,7 +114,8 @@ class TestSphereKinematics : public ::testing::Test {
     q = pinocchioMapping.getPinocchioJointPosition(x);
   }
 
-  void compareApproximation(const ocs2::VectorFunctionLinearApproximation& f1, const ocs2::VectorFunctionLinearApproximation& f2,
+  void compareApproximation(const ocs2::VectorFunctionLinearApproximation& f1,
+                            const ocs2::VectorFunctionLinearApproximation& f2,
                             bool functionOfInput = false) {
     if (!f1.f.isApprox(f2.f)) {
       std::cerr << "f1.f  " << f1.f.transpose() << '\n';
@@ -118,7 +142,8 @@ class TestSphereKinematics : public ::testing::Test {
   std::unique_ptr<ocs2::PinocchioInterface> pinocchioInterfacePtr;
   std::unique_ptr<ocs2::PinocchioSphereInterface> pinocchioSphereInterfacePtr;
   std::unique_ptr<ocs2::PinocchioSphereKinematics> sphereKinematicsPtr;
-  std::unique_ptr<ocs2::PinocchioSphereKinematicsCppAd> sphereKinematicsCppAdPtr;
+  std::unique_ptr<ocs2::PinocchioSphereKinematicsCppAd>
+      sphereKinematicsCppAdPtr;
   DummyMapping<ocs2::scalar_t> pinocchioMapping;
   DummyMapping<ocs2::ad_scalar_t> pinocchioMappingCppAd;
 };
@@ -133,23 +158,34 @@ TEST_F(TestSphereKinematics, testKinematicsPosition) {
   pinocchio::updateFramePlacements(model, data);
   pinocchio::computeJointJacobians(model, data, q);
 
-  const auto parentJointId = geometryModel.geometryObjects[geomObjIds[0]].parentJoint;
-  const auto& placement = geometryModel.geometryObjects[geomObjIds[0]].placement;
+  const auto parentJointId =
+      geometryModel.geometryObjects[geomObjIds[0]].parentJoint;
+  const auto& placement =
+      geometryModel.geometryObjects[geomObjIds[0]].placement;
   const vector3_t pos =
       data.oMi[parentJointId].rotation() *
-          (placement.rotation() * pinocchioSphereInterfacePtr->getSphereCentersToObjectCenter(0)[0] + placement.translation()) +
+          (placement.rotation() *
+               pinocchioSphereInterfacePtr->getSphereCentersToObjectCenter(
+                   0)[0] +
+           placement.translation()) +
       data.oMi[parentJointId].translation();
 
   const vector3_t sphereOffset = pos - data.oMi[parentJointId].translation();
   ocs2::matrix_t jointJacobian = ocs2::matrix_t::Zero(6, model.nv);
-  pinocchio::getJointJacobian(model, data, parentJointId, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jointJacobian);
-  const ocs2::matrix_t sphereJq = jointJacobian.topRows<3>() - ocs2::skewSymmetricMatrix(sphereOffset) * jointJacobian.bottomRows<3>();
+  pinocchio::getJointJacobian(model, data, parentJointId,
+                              pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED,
+                              jointJacobian);
+  const ocs2::matrix_t sphereJq =
+      jointJacobian.topRows<3>() -
+      ocs2::skewSymmetricMatrix(sphereOffset) * jointJacobian.bottomRows<3>();
   ocs2::matrix_t sphereJx;
-  std::tie(sphereJx, std::ignore) = pinocchioMapping.getOcs2Jacobian(x, sphereJq.topRows<3>(), ocs2::matrix_t::Zero(0, model.nq));
+  std::tie(sphereJx, std::ignore) = pinocchioMapping.getOcs2Jacobian(
+      x, sphereJq.topRows<3>(), ocs2::matrix_t::Zero(0, model.nq));
 
   sphereKinematicsPtr->setPinocchioInterface(*pinocchioInterfacePtr);
   const vector3_t spherePos = sphereKinematicsPtr->getPosition(x)[0];
-  const ocs2::VectorFunctionLinearApproximation spherePosLin = sphereKinematicsPtr->getPositionLinearApproximation(x)[0];
+  const ocs2::VectorFunctionLinearApproximation spherePosLin =
+      sphereKinematicsPtr->getPositionLinearApproximation(x)[0];
 
   EXPECT_TRUE(spherePos.isApprox(spherePos));
   EXPECT_TRUE(spherePos.isApprox(spherePosLin.f));
@@ -159,7 +195,6 @@ TEST_F(TestSphereKinematics, testKinematicsPosition) {
 TEST_F(TestSphereKinematics, testPosition) {
   const auto& model = pinocchioInterfacePtr->getModel();
   auto& data = pinocchioInterfacePtr->getData();
-
   pinocchio::forwardKinematics(model, data, q);
   pinocchio::updateFramePlacements(model, data);
 
@@ -180,8 +215,10 @@ TEST_F(TestSphereKinematics, testPositionApproximation) {
 
   sphereKinematicsPtr->setPinocchioInterface(*pinocchioInterfacePtr);
 
-  const auto spherePosLin = sphereKinematicsPtr->getPositionLinearApproximation(x)[0];
-  const auto spherePosLinAd = sphereKinematicsCppAdPtr->getPositionLinearApproximation(x)[0];
+  const auto spherePosLin =
+      sphereKinematicsPtr->getPositionLinearApproximation(x)[0];
+  const auto spherePosLinAd =
+      sphereKinematicsCppAdPtr->getPositionLinearApproximation(x)[0];
   compareApproximation(spherePosLin, spherePosLinAd);
 }
 
@@ -189,8 +226,10 @@ TEST_F(TestSphereKinematics, testClone) {
   const auto& model = pinocchioInterfacePtr->getModel();
   auto& data = pinocchioInterfacePtr->getData();
 
-  auto clonePtr = std::unique_ptr<ocs2::PinocchioSphereKinematics>(sphereKinematicsPtr->clone());
-  auto cloneCppAdPtr = std::unique_ptr<ocs2::PinocchioSphereKinematicsCppAd>(sphereKinematicsCppAdPtr->clone());
+  auto clonePtr = std::unique_ptr<ocs2::PinocchioSphereKinematics>(
+      sphereKinematicsPtr->clone());
+  auto cloneCppAdPtr = std::unique_ptr<ocs2::PinocchioSphereKinematicsCppAd>(
+      sphereKinematicsCppAdPtr->clone());
 
   pinocchio::forwardKinematics(model, data, q);
   pinocchio::updateFramePlacements(model, data);

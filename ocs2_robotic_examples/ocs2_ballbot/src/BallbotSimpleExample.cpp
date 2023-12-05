@@ -31,8 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <string>
 
-#include <ros/package.h>
-
+#include <ament_index_cpp/get_package_share_directory.hpp>
 // OCS2
 #include <ocs2_core/Types.h>
 #include <ocs2_core/cost/QuadraticStateCost.h>
@@ -55,10 +54,10 @@ int main(int argc, char** argv) {
    * Setting paths
    */
   // path to config file
-  std::string taskFile = ros::package::getPath("ocs2_ballbot") + "/config/mpc/task.info";
+  std::string taskFile = ament_index_cpp::get_package_share_directory("ocs2_ballbot") + "/config/mpc/task.info";
   std::cerr << "Loading task file: " << taskFile << std::endl;
   // path to save auto-generated libraries
-  std::string libraryFolder = ros::package::getPath("ocs2_ballbot") + "/auto_generated";
+  std::string libraryFolder = ament_index_cpp::get_package_share_directory("ocs2_ballbot") + "/auto_generated";
   std::cerr << "Generated library path: " << libraryFolder << std::endl;
 
   /* The optimal control problem formulation*/

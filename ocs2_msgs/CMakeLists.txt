@@ -1,39 +1,24 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_msgs)
 
-find_package(catkin REQUIRED
-  COMPONENTS
-    std_msgs
-    message_generation
+find_package(std_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/MpcState.msg"
+  "msg/MpcInput.msg"
+  "msg/ModeSchedule.msg"
+  "msg/MpcObservation.msg"
+  "msg/MpcPerformanceIndices.msg"
+  "msg/MpcTargetTrajectories.msg"
+  "msg/ControllerData.msg"
+  "msg/MpcFlattenedController.msg"
+  "msg/LagrangianMetrics.msg"
+  "msg/Multiplier.msg"
+  "msg/Constraint.msg"
+  "srv/Reset.srv"
+  DEPENDENCIES std_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )
 
-add_message_files(
-  FILES
-    mpc_state.msg
-    mpc_input.msg
-    mode_schedule.msg
-    mpc_observation.msg
-    mpc_performance_indices.msg
-    mpc_target_trajectories.msg
-    controller_data.msg
-    mpc_flattened_controller.msg
-    lagrangian_metrics.msg
-    multiplier.msg
-    constraint.msg
-)
-
-add_service_files(
-  FILES
-    reset.srv
-)
-
-generate_messages(
-  DEPENDENCIES
-    std_msgs
-)
-
-catkin_package(
-  CATKIN_DEPENDS
-    std_msgs
-    message_runtime
-)
+ament_package()

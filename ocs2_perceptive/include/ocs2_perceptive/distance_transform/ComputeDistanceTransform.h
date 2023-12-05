@@ -52,8 +52,8 @@ namespace ocs2 {
  * @tparam Scalar: The Scalar type
  */
 template <typename GetValFunc, typename SetValFunc, typename Scalar = float>
-void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, size_t start, size_t end,
-                              std::vector<size_t>& vBuffer, std::vector<Scalar>& zBuffer);
+void computeDistanceTransform(std::size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, std::size_t start, std::size_t end,
+                              std::vector<std::size_t>& vBuffer, std::vector<Scalar>& zBuffer);
 
 /**
  * Computes one-dimensional distance transform for a sampled function based on lower envelope of parabolas method introduced by:
@@ -76,8 +76,8 @@ void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFu
  * @tparam Scalar: The Scalar type
  */
 template <typename GetValFunc, typename SetValFunc, typename SetImageIndexFunc, typename Scalar = float>
-void computeDistanceTransform(size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, SetImageIndexFunc&& setImageIndex,
-                              size_t start, size_t end, std::vector<size_t>& vBuffer, std::vector<Scalar>& zBuffer);
+void computeDistanceTransform(std::size_t numSamples, GetValFunc&& getValue, SetValFunc&& setValue, SetImageIndexFunc&& setImageIndex,
+                              std::size_t start, std::size_t end, std::vector<std::size_t>& vBuffer, std::vector<Scalar>& zBuffer);
 
 }  // namespace ocs2
 

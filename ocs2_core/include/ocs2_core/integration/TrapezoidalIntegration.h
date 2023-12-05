@@ -48,7 +48,7 @@ VALUE_T trapezoidalIntegration(const std::vector<SCALAR_T>& timeTrajectory, cons
     return initialValue;
   }
 
-  for (size_t k = 1; k < timeTrajectory.size(); k++) {
+  for (std::size_t k = 1; k < timeTrajectory.size(); k++) {
     auto temp = valueTrajectory[k - 1] + valueTrajectory[k];
     temp *= (0.5 * (timeTrajectory[k] - timeTrajectory[k - 1]));
     initialValue += temp;

@@ -1,15 +1,16 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_ocs2)
 
-find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  ocs2_core
-  ocs2_ddp
-  ocs2_frank_wolfe
-)
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_core REQUIRED)
+find_package(ocs2_ddp REQUIRED)
+# find_package(ocs2_frank_wolfe REQUIRED)
 find_package(Boost REQUIRED COMPONENTS
   system
   filesystem
+  log_setup
+  log
 )
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
@@ -18,18 +19,13 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ###################################
-## catkin specific configuration ##
+## ament_cmake specific configuration ##
 ###################################
 
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  CATKIN_DEPENDS
+set(dependencies
     ocs2_core
     ocs2_ddp
-    ocs2_frank_wolfe
-  DEPENDS
+    # ocs2_frank_wolfe
     Boost
 )
 
@@ -41,15 +37,13 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
 )
 
 add_executable(${PROJECT_NAME}_lintTarget
   src/lintTarget.cpp
 )
-target_link_libraries(${PROJECT_NAME}_lintTarget
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}_lintTarget
+  ${dependencies}
 )
 
 #########################
@@ -70,53 +64,13 @@ endif(cmake_clang_tools_FOUND)
 ## Install ##
 #############
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 #############
 ## Testing ##
 #############
-## Info ==============================
-## to run tests, cd package folder and run
-## $ catkin build -DCMAKE_BUILD_TYPE=RelWithDebInfo --this
-## $ catkin run_tests --no-deps --this
-## to see the summary of unit test results run
-## $ catkin_test_results ../../../build/ocs2_ocs2
 
-#catkin_add_gtest(exp0_gddp_test
-#  test/exp0_gddp_test.cpp
-#)
-#target_link_libraries(exp0_gddp_test
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#)
-#target_compile_options(exp0_gddp_test PRIVATE ${OCS2_CXX_FLAGS})
 
-#catkin_add_gtest(exp1_gddp_test
-#  test/exp1_gddp_test.cpp
-#)
-#target_link_libraries(exp1_gddp_test
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#)
-#target_compile_options(exp1_gddp_test PRIVATE ${OCS2_CXX_FLAGS})
-
-#catkin_add_gtest(exp0_ocs2_test
-#  test/exp0_ocs2_test.cpp
-#)
-#target_link_libraries(exp0_ocs2_test
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#)
-#target_compile_options(exp0_ocs2_test PRIVATE ${OCS2_CXX_FLAGS})
-
-#catkin_add_gtest(exp1_ocs2_test
-#  test/exp1_ocs2_test.cpp
-#)
-#target_link_libraries(exp1_ocs2_test
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#)
-#target_compile_options(exp1_ocs2_test PRIVATE ${OCS2_CXX_FLAGS})
-
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_package()
