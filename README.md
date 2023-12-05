@@ -1,15 +1,35 @@
-# OCS2 Toolbox
+# OCS2_ROS2 Toolbox
 
 ## Summary
-OCS2 is a C++ toolbox tailored for Optimal Control for Switched Systems (OCS2). The toolbox provides an efficient implementation of the following algorith
+OCS2_ROS2 is developed based on [OCS2](https://github.com/leggedrobotics/ocs2), and features that are not supported at the moment:
 
-* SLQ: Continuous-time domin DDP
-* iLQR: Discrete-time domain DDP
-* SQP: Multiple-shooting algorithm based on HPIPM
-* PISOC: Path integral stochatic optimal control
+* ocs2_raisim
+* ocs2_mpcnet
+* ocs2_doc
 
-![legged-robot](https://leggedrobotics.github.io/ocs2/_static/gif/legged_robot.gif)
+## Installation
+### Prerequisites
+The OCS2 library is written in C++17. It is tested under Ubuntu 22.04 with library versions as provided in the package sources.
 
-OCS2 handles general path constraints through Augmented Lagrangian or relaxed barrier methods. To facilitate the application of OCS2 in robotic tasks, it provides the user with additional tools to set up the system dynamics (such as kinematic or dynamic models) and cost/constraints (such as self-collision avoidance and end-effector tracking) from a URDF model. The library also provides an automatic differentiation tool to calculate derivatives of the system dynamics, constraints, and cost. To facilitate its deployment on robotic platforms, the OCS2 provides tools for ROS interfaces. The toolbox’s efficient and numerically stable implementations in conjunction with its user-friendly interface have paved the way for employing it on numerous robotic applications with limited onboard computation power.
-
-For more information refer to the project's [Documentation Page](https://leggedrobotics.github.io/ocs2/) 
+### Dependencies
+* C++ compiler with C++17 support
+* ros2 iron
+* Eigen (v3.4)
+* Boost C++ (v1.74)
+* For rigid multi-body dynamics library and self collision support clone Pinocchio and HPP-FCL into your workspace
+```
+# install pinocchio
+git clone --recurse-submodules https://github.com/zhengxiang94/pinocchio.git
+# install hpp-fcl
+git clone --recurse-submodules https://github.com/zhengxiang94/hpp-fcl.git
+```
+* For various robotic assets used in OCS2 unit tests and the robotic examples
+```
+# Clone ocs2_robotic_assets in ros2_ws/src
+git clone https://github.com/zhengxiang94/ocs2_robotic_assets.git
+```
+* plane_segmentation_ros2
+```
+# Clone plane_segmentation_ros2 in ros2_ws/src
+git clone https://github.com/zhengxiang94/plane_segmentation_ros2.git
+```
