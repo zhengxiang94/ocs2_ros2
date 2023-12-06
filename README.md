@@ -33,3 +33,7 @@ git clone https://github.com/zhengxiang94/ocs2_robotic_assets.git
 # Clone plane_segmentation_ros2 in ros2_ws/src
 git clone https://github.com/zhengxiang94/plane_segmentation_ros2.git
 ```
+* others
+```
+sudo apt-get install ros-iron-grid-map-cv ros-iron-grid-map-msgs ros-iron-grid-map-ros ros-iron-grid-map-sdf libmpfr-dev libpcap-dev
+```
