@@ -736,9 +736,9 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: visualization_marker_array
       Value: true
-    - Class: rviz_default_plugins/Group
+    - Class: rviz_common/Group
       Displays:
-        - Class: rviz_default_plugins/Group
+        - Class: rviz_common/Group
           Displays:
             - Class: rviz_default_plugins/Marker
               Enabled: true
