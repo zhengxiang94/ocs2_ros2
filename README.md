@@ -3,7 +3,6 @@
 ## Summary
 OCS2_ROS2 is developed based on [OCS2](https://github.com/leggedrobotics/ocs2), and features that are not supported at the moment:
 
-* ocs2_raisim
 * ocs2_mpcnet
 * ocs2_doc
 
