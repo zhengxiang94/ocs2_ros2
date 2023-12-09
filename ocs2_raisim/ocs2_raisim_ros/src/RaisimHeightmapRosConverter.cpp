@@ -27,23 +27,26 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include <ros/topic.h>
-
 #include "ocs2_raisim_ros/RaisimHeightmapRosConverter.h"
 
 namespace ocs2 {
 
-grid_map_msgs::GridMapPtr RaisimHeightmapRosConverter::convertHeightmapToGridmap(const raisim::HeightMap& heightMap,
-                                                                                 const std::string& frameId) {
-  grid_map_msgs::GridMapPtr gridMapMsg(new grid_map_msgs::GridMap());
+grid_map_msgs::msg::GridMap::SharedPtr
+RaisimHeightmapRosConverter::convertHeightmapToGridmap(
+    const raisim::HeightMap& heightMap, const std::string& frameId) {
+  grid_map_msgs::msg::GridMap::SharedPtr gridMapMsg(
+      std::make_shared<grid_map_msgs::msg::GridMap>());
 
-  gridMapMsg->info.header.frame_id = frameId;
-  gridMapMsg->info.header.stamp = ros::Time::now();
+  gridMapMsg->header.frame_id = frameId;
 
-  const auto xResolution = heightMap.getXSize() / static_cast<double>(heightMap.getXSamples());
-  const auto yResolution = heightMap.getYSize() / static_cast<double>(heightMap.getYSamples());
+  const auto xResolution =
+      heightMap.getXSize() / static_cast<double>(heightMap.getXSamples());
+  const auto yResolution =
+      heightMap.getYSize() / static_cast<double>(heightMap.getYSamples());
   if (std::abs(xResolution - yResolution) > 1e-9) {
-    throw std::runtime_error("RaisimHeightmapRosConverter::convertHeightmapToGridmap - Resolution in x and y must be identical");
+    throw std::runtime_error(
+        "RaisimHeightmapRosConverter::convertHeightmapToGridmap - Resolution "
+        "in x and y must be identical");
   }
   gridMapMsg->info.resolution = xResolution;
 
@@ -55,7 +58,7 @@ grid_map_msgs::GridMapPtr RaisimHeightmapRosConverter::convertHeightmapToGridmap
   gridMapMsg->info.pose.orientation.w = 1.0;
 
   gridMapMsg->layers.emplace_back("elevation");
-  std_msgs::Float32MultiArray dataArray;
+  std_msgs::msg::Float32MultiArray dataArray;
   dataArray.layout.dim.resize(2);
   dataArray.layout.dim[0].label = "column_index";
   dataArray.layout.dim[0].stride = heightMap.getHeightVector().size();
@@ -63,15 +66,22 @@ grid_map_msgs::GridMapPtr RaisimHeightmapRosConverter::convertHeightmapToGridmap
   dataArray.layout.dim[1].label = "row_index";
   dataArray.layout.dim[1].stride = heightMap.getYSamples();
   dataArray.layout.dim[1].size = heightMap.getYSamples();
-  dataArray.data.insert(dataArray.data.begin(), heightMap.getHeightVector().rbegin(), heightMap.getHeightVector().rend());
+  dataArray.data.insert(dataArray.data.begin(),
+                        heightMap.getHeightVector().rbegin(),
+                        heightMap.getHeightVector().rend());
   gridMapMsg->data.push_back(dataArray);
 
   return gridMapMsg;
 }
 
-std::unique_ptr<raisim::HeightMap> RaisimHeightmapRosConverter::convertGridmapToHeightmap(const grid_map_msgs::GridMapConstPtr& gridMap) {
-  if (gridMap->data[0].layout.dim[0].label != "column_index" or gridMap->data[0].layout.dim[1].label != "row_index") {
-    throw std::runtime_error("RaisimHeightmapRosConverter::convertGridmapToHeightmap - Layout of gridMap currently not supported");
+std::unique_ptr<raisim::HeightMap>
+RaisimHeightmapRosConverter::convertGridmapToHeightmap(
+    const grid_map_msgs::msg::GridMap::ConstSharedPtr& gridMap) {
+  if (gridMap->data[0].layout.dim[0].label != "column_index" or
+      gridMap->data[0].layout.dim[1].label != "row_index") {
+    throw std::runtime_error(
+        "RaisimHeightmapRosConverter::convertGridmapToHeightmap - Layout of "
+        "gridMap currently not supported");
   }
 
   const int xSamples = gridMap->data[0].layout.dim[0].size;
@@ -81,23 +91,39 @@ std::unique_ptr<raisim::HeightMap> RaisimHeightmapRosConverter::convertGridmapTo
   const double centerX = gridMap->info.pose.position.x;
   const double centerY = gridMap->info.pose.position.y;
 
-  std::vector<double> height(gridMap->data[0].data.rbegin(), gridMap->data[0].data.rend());
+  std::vector<double> height(gridMap->data[0].data.rbegin(),
+                             gridMap->data[0].data.rend());
 
-  return std::make_unique<raisim::HeightMap>(xSamples, ySamples, xSize, ySize, centerX, centerY, height);
+  return std::make_unique<raisim::HeightMap>(xSamples, ySamples, xSize, ySize,
+                                             centerX, centerY, height);
 }
 
-void RaisimHeightmapRosConverter::publishGridmap(const raisim::HeightMap& heightMap, const std::string& frameId) {
+void RaisimHeightmapRosConverter::publishGridmap(
+    const raisim::HeightMap& heightMap, rclcpp::Node::SharedPtr node, const std::string& frameId) {
   if (!gridmapPublisher_) {
-    gridmapPublisher_.reset(new ros::Publisher(nodeHandle_.advertise<grid_map_msgs::GridMap>("/raisim_heightmap", 1, true)));
+    gridmapPublisher_ = node->create_publisher<grid_map_msgs::msg::GridMap>(
+        "raisim_heightmap", 1);
   }
   auto gridMapMsg = convertHeightmapToGridmap(heightMap, frameId);
-  gridmapPublisher_->publish(gridMapMsg);
+  gridmapPublisher_->publish(*gridMapMsg);
 }
 
-std::pair<std::unique_ptr<raisim::HeightMap>, grid_map_msgs::GridMapConstPtr> RaisimHeightmapRosConverter::getHeightmapFromRos(
-    double timeout) {
-  auto gridMapMsg = ros::topic::waitForMessage<grid_map_msgs::GridMap>("/raisim_heightmap", ros::Duration(timeout));
-  return {gridMapMsg ? convertGridmapToHeightmap(gridMapMsg) : nullptr, gridMapMsg};
+std::pair<std::unique_ptr<raisim::HeightMap>,
+          grid_map_msgs::msg::GridMap::ConstSharedPtr>
+RaisimHeightmapRosConverter::getHeightmapFromRos(rclcpp::Node::SharedPtr node, double timeout) {
+  grid_map_msgs::msg::GridMap::SharedPtr gridMapMsg = nullptr;
+  auto sub = node->create_subscription<grid_map_msgs::msg::GridMap>(
+      "raisim_heightmap", 1,
+      [&gridMapMsg](grid_map_msgs::msg::GridMap::ConstSharedPtr msg) {
+        if (!gridMapMsg) {
+          *gridMapMsg = *msg;
+        }
+      });
+  std::chrono::nanoseconds duration = std::chrono::seconds(1);
+  rclcpp::sleep_for(duration);
+  rclcpp::spin(node);
+  return {gridMapMsg ? convertGridmapToHeightmap(gridMapMsg) : nullptr,
+          gridMapMsg};
 }
 
 }  // namespace ocs2

@@ -23,8 +23,8 @@ set(dependencies
   Eigen3
 )
 
-# Generate compile_commands.json for clang tools
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
 
 ###########
 ## Build ##

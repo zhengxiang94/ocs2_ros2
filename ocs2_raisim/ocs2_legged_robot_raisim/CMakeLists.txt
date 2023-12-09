@@ -1,31 +1,28 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_CXX_STANDARD 17)
 project(ocs2_legged_robot_raisim)
 
-# Generate compile_commands.json for clang tools
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CATKIN_PACKAGE_DEPENDENCIES
+
+
+set(dependencies
   ocs2_legged_robot
   ocs2_legged_robot_ros
   ocs2_raisim_core
   ocs2_raisim_ros
 )
 
-find_package(catkin REQUIRED COMPONENTS
-  ${CATKIN_PACKAGE_DEPENDENCIES}
-)
+find_package(ament_cmake REQUIRED)
+find_package(ocs2_legged_robot REQUIRED)
+find_package(ocs2_legged_robot_ros REQUIRED)
+find_package(ocs2_raisim_core REQUIRED)
+find_package(ocs2_raisim_ros REQUIRED)
 
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-  CATKIN_DEPENDS
-    ${CATKIN_PACKAGE_DEPENDENCIES}
-  LIBRARIES
-    ${PROJECT_NAME}
+find_package(Boost REQUIRED COMPONENTS
+  system
+  filesystem
+  log_setup
+  log
 )
 
 ###########
@@ -35,7 +32,6 @@ catkin_package(
 # Add directories for all targets
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
 )
 
 # main library
@@ -43,11 +39,8 @@ add_library(${PROJECT_NAME}
   src/LeggedRobotRaisimConversions.cpp
   src/LeggedRobotRaisimVisualizer.cpp
 )
-add_dependencies(${PROJECT_NAME}
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 target_compile_options(${PROJECT_NAME} PUBLIC ${OCS2_CXX_FLAGS})
 
@@ -55,13 +48,11 @@ target_compile_options(${PROJECT_NAME} PUBLIC ${OCS2_CXX_FLAGS})
 add_executable(legged_robot_raisim_dummy
   src/LeggedRobotRaisimDummyNode.cpp
 )
-add_dependencies(legged_robot_raisim_dummy
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
+ament_target_dependencies(legged_robot_raisim_dummy
+  ${dependencies}
 )
 target_link_libraries(legged_robot_raisim_dummy
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
 )
 target_compile_options(legged_robot_raisim_dummy PRIVATE ${OCS2_CXX_FLAGS})
 
@@ -84,33 +75,45 @@ endif(cmake_clang_tools_FOUND)
 ## Install ##
 #############
 
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include/${PROJECT_NAME}
 )
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-install(TARGETS legged_robot_raisim_dummy
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(
+  TARGETS 
+    legged_robot_raisim_dummy
+    DESTINATION lib/${PROJECT_NAME}
 )
 
 install(DIRECTORY config launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 #############
 ## Testing ##
 #############
+find_package(ament_lint_auto REQUIRED)
+ament_lint_auto_find_test_dependencies()
+find_package(ament_cmake_gtest)
 
-catkin_add_gtest(${PROJECT_NAME}_test
+ament_add_gtest(${PROJECT_NAME}_test
   test/testLeggedRobotRaisimConversions.cpp
 )
-target_link_libraries(${PROJECT_NAME}_test
-  gtest_main
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}_test
+  ${dependencies}
 )
+target_link_libraries(${PROJECT_NAME}_test
+  ${PROJECT_NAME}
+)
+
+ament_export_dependencies(${dependencies})  
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+ament_package()

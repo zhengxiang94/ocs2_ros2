@@ -95,6 +95,9 @@ class LeggedRobotVisualizer : public DummyObserver {
                                        const vector_array_t& mpcStateTrajectory,
                                        const ModeSchedule& modeSchedule);
 
+ protected:
+  rclcpp::Node::SharedPtr node_;
+
  private:
   LeggedRobotVisualizer(const LeggedRobotVisualizer&) = delete;
   void publishJointTransforms(rclcpp::Time timeStamp,
@@ -109,7 +112,6 @@ class LeggedRobotVisualizer : public DummyObserver {
   const CentroidalModelInfo centroidalModelInfo_;
   std::unique_ptr<PinocchioEndEffectorKinematics> endEffectorKinematicsPtr_;
 
-  rclcpp::Node::SharedPtr node_;
   tf2_ros::TransformBroadcaster tfBroadcaster_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr jointPublisher_;
 

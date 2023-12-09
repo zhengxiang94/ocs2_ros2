@@ -28,27 +28,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
 
 #include <gtest/gtest.h>
-
-#include <ros/package.h>
-
+#include <ocs2_legged_robot/LeggedRobotInterface.h>
 #include <ocs2_raisim_core/RaisimRolloutSettings.h>
 
-#include <ocs2_legged_robot/LeggedRobotInterface.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include "ocs2_legged_robot_raisim/LeggedRobotRaisimConversions.h"
 
 TEST(LeggedRobotRaisim, Conversions) {
   // paths to files
-  std::string taskFile = ros::package::getPath("ocs2_legged_robot") + "/config/mpc/task.info";
-  std::string urdfFile = ros::package::getPath("ocs2_robotic_assets") + "/resources/anymal_c/urdf/anymal.urdf";
-  std::string referenceFile = ros::package::getPath("ocs2_legged_robot") + "/config/command/reference.info";
-  std::string raisimFile = ros::package::getPath("ocs2_legged_robot_raisim") + "/config/raisim.info";
+  std::string taskFile =
+      ament_index_cpp::get_package_share_directory("ocs2_legged_robot") +
+      "/config/mpc/task.info";
+  std::string urdfFile =
+      ament_index_cpp::get_package_share_directory("ocs2_robotic_assets") +
+      "/resources/anymal_c/urdf/anymal.urdf";
+  std::string referenceFile =
+      ament_index_cpp::get_package_share_directory("ocs2_legged_robot") +
+      "/config/command/reference.info";
+  std::string raisimFile =
+      ament_index_cpp::get_package_share_directory("ocs2_legged_robot_raisim") +
+      "/config/raisim.info";
   // interface
-  ocs2::legged_robot::LeggedRobotInterface interface(taskFile, urdfFile, referenceFile);
+  ocs2::legged_robot::LeggedRobotInterface interface(taskFile, urdfFile,
+                                                     referenceFile);
   // raisim conversions
   ocs2::RaisimRolloutSettings raisimRolloutSettings(raisimFile, "rollout");
-  ocs2::legged_robot::LeggedRobotRaisimConversions conversions(interface.getPinocchioInterface(), interface.getCentroidalModelInfo(),
-                                                               interface.getInitialState());
+  ocs2::legged_robot::LeggedRobotRaisimConversions conversions(
+      interface.getPinocchioInterface(), interface.getCentroidalModelInfo(),
+      interface.getInitialState());
   // consistency test ocs2 -> raisim -> ocs2
   for (size_t i = 0; i < 100; i++) {
     ocs2::vector_t stateIn(24);
@@ -74,10 +82,12 @@ TEST(LeggedRobotRaisim, Conversions) {
 
     ocs2::vector_t state = conversions.raisimGenCoordGenVelToState(qIn, dqIn);
     ocs2::vector_t input = ocs2::vector_t::Zero(24);
-    input.tail<12>() = conversions.raisimJointOrderToOcs2JointOrder(dqIn.tail<12>());
+    input.tail<12>() =
+        conversions.raisimJointOrderToOcs2JointOrder(dqIn.tail<12>());
 
     Eigen::VectorXd qOut, dqOut;
-    std::tie(qOut, dqOut) = conversions.stateToRaisimGenCoordGenVel(state, input);
+    std::tie(qOut, dqOut) =
+        conversions.stateToRaisimGenCoordGenVel(state, input);
 
     // flip quaternion sign for comparison
     if (qIn(3) * qOut(3) < 0.0) {

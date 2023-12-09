@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_CXX_STANDARD 17)
 project(ocs2_self_collision_visualization)
 
-# Generate compile_commands.json for clang tools
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
 
 set(dependencies
   ocs2_core

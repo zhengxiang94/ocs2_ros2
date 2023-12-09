@@ -39,7 +39,7 @@ namespace legged_robot {
 class LeggedRobotRaisimVisualizer : public LeggedRobotVisualizer {
  public:
   LeggedRobotRaisimVisualizer(PinocchioInterface pinocchioInterface, CentroidalModelInfo centroidalModelInfo,
-                              const PinocchioEndEffectorKinematics& endEffectorKinematics, ros::NodeHandle& nodeHandle,
+                              const PinocchioEndEffectorKinematics& endEffectorKinematics, rclcpp::Node::SharedPtr node,
                               scalar_t maxUpdateFrequency = 100.0);
 
   ~LeggedRobotRaisimVisualizer() override = default;

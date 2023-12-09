@@ -27,17 +27,13 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
 
-#include <ros/init.h>
-#include <ros/package.h>
-
 #include <ocs2_centroidal_model/CentroidalModelPinocchioMapping.h>
+#include <ocs2_legged_robot/LeggedRobotInterface.h>
 #include <ocs2_pinocchio_interface/PinocchioEndEffectorKinematics.h>
 #include <ocs2_raisim_core/RaisimRollout.h>
 #include <ocs2_raisim_ros/RaisimHeightmapRosConverter.h>
 #include <ocs2_ros_interfaces/mrt/MRT_ROS_Dummy_Loop.h>
 #include <ocs2_ros_interfaces/mrt/MRT_ROS_Interface.h>
-
-#include <ocs2_legged_robot/LeggedRobotInterface.h>
 
 #include "ocs2_legged_robot_raisim/LeggedRobotRaisimConversions.h"
 #include "ocs2_legged_robot_raisim/LeggedRobotRaisimVisualizer.h"
@@ -49,33 +45,46 @@ int main(int argc, char** argv) {
   const std::string robotName = "legged_robot";
 
   // initialize ros node
-  ros::init(argc, argv, robotName + "_raisim_dummy");
-  ros::NodeHandle nodeHandle;
+  rclcpp::init(argc, argv);
+  rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared(
+      robotName + "_raisim_dummy",
+      rclcpp::NodeOptions()
+          .allow_undeclared_parameters(true)
+          .automatically_declare_parameters_from_overrides(true));
   // Get node parameters
-  std::string taskFile, urdfFile, referenceFile, raisimFile, resourcePath;
-  nodeHandle.getParam("/taskFile", taskFile);
-  nodeHandle.getParam("/urdfFile", urdfFile);
-  nodeHandle.getParam("/referenceFile", referenceFile);
-  nodeHandle.getParam("/raisimFile", raisimFile);
-  nodeHandle.getParam("/resourcePath", resourcePath);
+  const std::string taskFile = node->get_parameter("taskFile").as_string();
+  const std::string urdfFile = node->get_parameter("urdfFile").as_string();
+  const std::string referenceFile =
+      node->get_parameter("referenceFile").as_string();
+  const std::string raisimFile = node->get_parameter("raisimFile").as_string();
+  const std::string resourcePath =
+      node->get_parameter("resourcePath").as_string();
 
   // legged robot interface
   LeggedRobotInterface interface(taskFile, urdfFile, referenceFile);
 
   // raisim rollout
-  LeggedRobotRaisimConversions conversions(interface.getPinocchioInterface(), interface.getCentroidalModelInfo(),
+  LeggedRobotRaisimConversions conversions(interface.getPinocchioInterface(),
+                                           interface.getCentroidalModelInfo(),
                                            interface.getInitialState());
   RaisimRolloutSettings raisimRolloutSettings(raisimFile, "rollout", true);
   conversions.loadSettings(raisimFile, "rollout", true);
   RaisimRollout raisimRollout(
       urdfFile, resourcePath,
-      [&](const vector_t& state, const vector_t& input) { return conversions.stateToRaisimGenCoordGenVel(state, input); },
-      [&](const Eigen::VectorXd& q, const Eigen::VectorXd& dq) { return conversions.raisimGenCoordGenVelToState(q, dq); },
-      [&](double time, const vector_t& input, const vector_t& state, const Eigen::VectorXd& q, const Eigen::VectorXd& dq) {
-        return conversions.inputToRaisimGeneralizedForce(time, input, state, q, dq);
+      [&](const vector_t& state, const vector_t& input) {
+        return conversions.stateToRaisimGenCoordGenVel(state, input);
+      },
+      [&](const Eigen::VectorXd& q, const Eigen::VectorXd& dq) {
+        return conversions.raisimGenCoordGenVelToState(q, dq);
+      },
+      [&](double time, const vector_t& input, const vector_t& state,
+          const Eigen::VectorXd& q, const Eigen::VectorXd& dq) {
+        return conversions.inputToRaisimGeneralizedForce(time, input, state, q,
+                                                         dq);
       },
       nullptr, raisimRolloutSettings,
-      [&](double time, const vector_t& input, const vector_t& state, const Eigen::VectorXd& q, const Eigen::VectorXd& dq) {
+      [&](double time, const vector_t& input, const vector_t& state,
+          const Eigen::VectorXd& q, const Eigen::VectorXd& dq) {
         return conversions.inputToRaisimPdTargets(time, input, state, q, dq);
       });
 
@@ -89,24 +98,30 @@ int main(int argc, char** argv) {
     terrainPtr = raisimRollout.generateTerrain(terrainProperties);
     conversions.setTerrain(*terrainPtr);
     heightmapPub.reset(new ocs2::RaisimHeightmapRosConverter());
-    heightmapPub->publishGridmap(*terrainPtr, "odom");
+    heightmapPub->publishGridmap(*terrainPtr, node, "odom");
   }
 
   // mrt
   MRT_ROS_Interface mrt(robotName);
   mrt.initRollout(&raisimRollout);
-  mrt.launchNodes(nodeHandle);
+  mrt.launchNodes(node);
 
   // visualization
-  CentroidalModelPinocchioMapping pinocchioMapping(interface.getCentroidalModelInfo());
-  PinocchioEndEffectorKinematics endEffectorKinematics(interface.getPinocchioInterface(), pinocchioMapping,
-                                                       interface.modelSettings().contactNames3DoF);
-  auto leggedRobotRaisimVisualizer = std::make_shared<LeggedRobotRaisimVisualizer>(
-      interface.getPinocchioInterface(), interface.getCentroidalModelInfo(), endEffectorKinematics, nodeHandle);
+  CentroidalModelPinocchioMapping pinocchioMapping(
+      interface.getCentroidalModelInfo());
+  PinocchioEndEffectorKinematics endEffectorKinematics(
+      interface.getPinocchioInterface(), pinocchioMapping,
+      interface.modelSettings().contactNames3DoF);
+  auto leggedRobotRaisimVisualizer =
+      std::make_shared<LeggedRobotRaisimVisualizer>(
+          interface.getPinocchioInterface(), interface.getCentroidalModelInfo(),
+          endEffectorKinematics, node);
   leggedRobotRaisimVisualizer->updateTerrain();
 
   // legged robot dummy
-  MRT_ROS_Dummy_Loop leggedRobotDummy(mrt, interface.mpcSettings().mrtDesiredFrequency_, interface.mpcSettings().mpcDesiredFrequency_);
+  MRT_ROS_Dummy_Loop leggedRobotDummy(
+      mrt, interface.mpcSettings().mrtDesiredFrequency_,
+      interface.mpcSettings().mpcDesiredFrequency_);
   leggedRobotDummy.subscribeObservers({leggedRobotRaisimVisualizer});
 
   // initial state
@@ -114,10 +129,12 @@ int main(int argc, char** argv) {
   initObservation.mode = ModeNumber::STANCE;
   initObservation.time = 0.0;
   initObservation.state = interface.getInitialState();
-  initObservation.input = vector_t::Zero(interface.getCentroidalModelInfo().inputDim);
+  initObservation.input =
+      vector_t::Zero(interface.getCentroidalModelInfo().inputDim);
 
   // initial command
-  TargetTrajectories initTargetTrajectories({initObservation.time}, {initObservation.state}, {initObservation.input});
+  TargetTrajectories initTargetTrajectories(
+      {initObservation.time}, {initObservation.state}, {initObservation.input});
 
   // run dummy
   leggedRobotDummy.run(initObservation, initTargetTrajectories);

@@ -64,10 +64,10 @@ LeggedRobotVisualizer::LeggedRobotVisualizer(
     CentroidalModelInfo centroidalModelInfo,
     const PinocchioEndEffectorKinematics& endEffectorKinematics,
     const rclcpp::Node::SharedPtr& node, scalar_t maxUpdateFrequency)
-    : pinocchioInterface_(std::move(pinocchioInterface)),
+    : node_(node),
+      pinocchioInterface_(std::move(pinocchioInterface)),
       centroidalModelInfo_(std::move(centroidalModelInfo)),
       endEffectorKinematicsPtr_(endEffectorKinematics.clone()),
-      node_(node),
       tfBroadcaster_(node),
       lastTime_(std::numeric_limits<scalar_t>::lowest()),
       minPublishTimeDifference_(1.0 / maxUpdateFrequency) {

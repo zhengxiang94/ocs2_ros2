@@ -31,47 +31,62 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ocs2_raisim_ros/RaisimHeightmapRosConverter.h>
 
+#include <utility>
+
 namespace ocs2 {
 namespace legged_robot {
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-LeggedRobotRaisimVisualizer::LeggedRobotRaisimVisualizer(PinocchioInterface pinocchioInterface, CentroidalModelInfo centroidalModelInfo,
-                                                         const PinocchioEndEffectorKinematics& endEffectorKinematics,
-                                                         ros::NodeHandle& nodeHandle, scalar_t maxUpdateFrequency)
-    : LeggedRobotVisualizer(pinocchioInterface, centroidalModelInfo, endEffectorKinematics, nodeHandle, maxUpdateFrequency) {}
+LeggedRobotRaisimVisualizer::LeggedRobotRaisimVisualizer(
+    PinocchioInterface pinocchioInterface,
+    CentroidalModelInfo centroidalModelInfo,
+    const PinocchioEndEffectorKinematics& endEffectorKinematics,
+    rclcpp::Node::SharedPtr node, scalar_t maxUpdateFrequency)
+    : LeggedRobotVisualizer(std::move(pinocchioInterface), centroidalModelInfo,
+                            endEffectorKinematics, std::move(node),
+                            maxUpdateFrequency) {}
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-void LeggedRobotRaisimVisualizer::update(const SystemObservation& observation, const PrimalSolution& primalSolution,
+void LeggedRobotRaisimVisualizer::update(const SystemObservation& observation,
+                                         const PrimalSolution& primalSolution,
                                          const CommandData& command) {
   SystemObservation raisimObservation = observation;
   PrimalSolution raisimPrimalSolution = primalSolution;
   CommandData raisimCommand = command;
   // height relative to terrain
   if (terrainPtr_ != nullptr) {
-    raisimObservation.state(8) += terrainPtr_->getHeight(observation.state(6), observation.state(7));
+    raisimObservation.state(8) +=
+        terrainPtr_->getHeight(observation.state(6), observation.state(7));
     for (size_t i = 0; i < primalSolution.stateTrajectory_.size(); i++) {
       raisimPrimalSolution.stateTrajectory_[i](8) +=
-          terrainPtr_->getHeight(primalSolution.stateTrajectory_[i](6), primalSolution.stateTrajectory_[i](7));
+          terrainPtr_->getHeight(primalSolution.stateTrajectory_[i](6),
+                                 primalSolution.stateTrajectory_[i](7));
     }
     raisimCommand.mpcInitObservation_.state(8) +=
-        terrainPtr_->getHeight(command.mpcInitObservation_.state(6), command.mpcInitObservation_.state(7));
-    for (size_t i = 0; i < command.mpcTargetTrajectories_.stateTrajectory.size(); i++) {
-      raisimCommand.mpcTargetTrajectories_.stateTrajectory[i](8) += terrainPtr_->getHeight(
-          command.mpcTargetTrajectories_.stateTrajectory[i](6), command.mpcTargetTrajectories_.stateTrajectory[i](7));
+        terrainPtr_->getHeight(command.mpcInitObservation_.state(6),
+                               command.mpcInitObservation_.state(7));
+    for (size_t i = 0;
+         i < command.mpcTargetTrajectories_.stateTrajectory.size(); i++) {
+      raisimCommand.mpcTargetTrajectories_.stateTrajectory[i](8) +=
+          terrainPtr_->getHeight(
+              command.mpcTargetTrajectories_.stateTrajectory[i](6),
+              command.mpcTargetTrajectories_.stateTrajectory[i](7));
     }
   }
-  LeggedRobotVisualizer::update(raisimObservation, raisimPrimalSolution, raisimCommand);
+  LeggedRobotVisualizer::update(raisimObservation, raisimPrimalSolution,
+                                raisimCommand);
 }
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
 void LeggedRobotRaisimVisualizer::updateTerrain(double timeout) {
-  terrainPtr_ = std::move(RaisimHeightmapRosConverter::getHeightmapFromRos(timeout).first);
+  terrainPtr_ = std::move(
+      RaisimHeightmapRosConverter::getHeightmapFromRos(node_, timeout).first);
 }
 
 }  // namespace legged_robot
